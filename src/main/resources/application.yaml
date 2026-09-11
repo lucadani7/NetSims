@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: NetSims
+vaadin:
+  launch-browser: true
