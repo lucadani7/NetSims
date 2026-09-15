@@ -2,6 +2,9 @@ package com.lucadani.netsims.components;
 
 import com.lucadani.netsims.simulation.NetworkSimulationEngine;
 import com.lucadani.netsims.simulation.TcpConnectionState;
+import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.DetachEvent;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H3;
@@ -15,6 +18,7 @@ public class TcpControlComponent extends VerticalLayout {
 
     private final NetworkSimulationEngine simulationEngine;
     private final Grid<TcpConnectionState> grid = new Grid<>(TcpConnectionState.class);
+    private Runnable listenerRegistration;
 
     public TcpControlComponent(NetworkSimulationEngine simulationEngine) {
         this.simulationEngine = simulationEngine;
@@ -67,12 +71,29 @@ public class TcpControlComponent extends VerticalLayout {
             }
         });
 
-        // Configurare Grid
         grid.setColumns("connectionId", "cwnd", "ssthresh", "phase", "duplicateAckCount");
         grid.setHeight("200px");
         refreshGrid();
 
         add(connSourceField, connDestField, initConnButton, ackButton, dupAckButton, timeoutButton, grid);
+    }
+
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
+        UI ui = attachEvent.getSource().getUI().orElse(null);
+        if (ui != null) {
+            listenerRegistration = () -> ui.access(this::refreshGrid);
+            simulationEngine.registerListener(listenerRegistration);
+        }
+    }
+
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        super.onDetach(detachEvent);
+        if (listenerRegistration != null) {
+            simulationEngine.unregisterListener(listenerRegistration);
+        }
     }
 
     private void refreshGrid() {
